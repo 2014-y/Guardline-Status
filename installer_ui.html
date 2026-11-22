@@ -1,0 +1,952 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guardline Status 安装程序</title>
+<style>
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url("__FONT_INTER__") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("__FONT_MONO_400__") format("woff2");
+}
+:root {
+  --sans: "Inter", "Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --bg: #141416;
+  --rail: #18181B;
+  --foot: #161619;
+  --card: #1A1A1E;
+  --inp: #111113;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.13);
+  --text: #F4F4F5;
+  --text-2: #C4C4CE;
+  --text-3: #8E8E9A;
+  --accent: #EA7047;
+  --accent-hover: #F27D57;
+  --accent-active: #D96038;
+  --err: #F87171;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px; font-weight: 400; line-height: 1.5;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+button, input { font: inherit; color: inherit; border: none; outline: none; background: none; }
+button { cursor: pointer; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.window {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+/* ==================== 顶部原生风格标题栏 ==================== */
+.titlebar {
+  height: 42px; flex-shrink: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  padding-left: 14px;
+}
+.tb-title {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13.5px; font-weight: 500; color: var(--text-2);
+}
+.tb-title img {
+  width: 17px; height: 17px; border-radius: 4px; display: block;
+}
+.tb-btns { height: 100%; display: flex; }
+.win-btn {
+  width: 48px; height: 100%; border-radius: 0;
+  display: grid; place-items: center; color: var(--text-2);
+  transition: background 0.12s, color 0.12s;
+}
+.win-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+.win-btn.close:hover { background: #E81123; color: #FFFFFF; }
+.win-btn svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.6; fill: none; }
+
+/* ==================== 主体双栏向导骨架 ==================== */
+.body-grid {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: 228px 1fr;
+}
+
+/* 左侧中性步进导航栏 */
+.side {
+  background: var(--rail);
+  border-right: 1px solid var(--line);
+  padding: 22px 18px 18px;
+  display: flex; flex-direction: column;
+}
+.prod-box {
+  display: flex; align-items: center; gap: 11px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.brand-icon {
+  width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0; display: block;
+}
+.brand-name {
+  font-size: 15.5px; font-weight: 600; color: var(--text); line-height: 1.25;
+}
+.brand-ver {
+  font-family: var(--mono); font-size: 12px; color: var(--text-3); margin-top: 2px;
+  white-space: nowrap;
+}
+
+.steps {
+  margin-top: 20px;
+  display: flex; flex-direction: column;
+}
+.step {
+  height: 42px;
+  display: flex; align-items: center; gap: 11px;
+  position: relative;
+}
+.step:not(:last-child)::before {
+  content: "";
+  position: absolute; left: 10.5px; top: 32px; width: 1px; height: 20px;
+  background: rgba(255, 255, 255, 0.09);
+  transition: background 0.18s;
+}
+.step.done:not(:last-child)::before {
+  background: rgba(255, 255, 255, 0.22);
+}
+.step-num {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--rail);
+  font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text-3);
+  display: grid; place-items: center; position: relative; z-index: 1;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+.step-num .chk-ico {
+  display: none; width: 11px; height: 11px;
+  stroke: #E4E4E7; stroke-width: 2.1; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.step-lbl { font-size: 13.5px; color: var(--text-3); transition: color 0.18s; }
+
+.step.active .step-num { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+.step.active .step-lbl { color: var(--text); font-weight: 600; }
+
+.step.done .step-num { background: #27272A; border-color: rgba(255, 255, 255, 0.18); color: #E4E4E7; }
+.step.done .step-num .num-txt { display: none; }
+.step.done .step-num .chk-ico { display: block; }
+.step.done .step-lbl { color: var(--text-2); }
+
+.side-foot {
+  margin-top: auto; padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 12px; color: #7C7C88; line-height: 1.6;
+}
+
+/* ==================== 右侧内容区 ==================== */
+.main {
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0;
+}
+.content {
+  flex: 1; min-height: 0;
+  padding: 22px 28px 16px;
+  overflow: hidden;
+}
+.page { display: none; height: 100%; flex-direction: column; }
+.page.active { display: flex; animation: fadeIn 0.14s ease-out; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+  font-size: 20px; font-weight: 600; letter-spacing: -0.01em; color: var(--text);
+  line-height: 1.3; margin-bottom: 6px;
+}
+.lead {
+  font-size: 13.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 16px;
+}
+
+/* 工程规格参数表 */
+.spec-card, .box-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.spec-row {
+  display: grid; grid-template-columns: 98px 1fr; align-items: center; gap: 12px;
+  min-height: 44px; padding: 8px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-k { font-size: 13px; color: var(--text-2); }
+.spec-v {
+  font-size: 13.5px; color: var(--text); min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.spec-v.block { display: block; font-size: 13px; }
+.tag {
+  background: #252529;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: #D4D4D8;
+  font-size: 12px; font-weight: 500;
+  padding: 2px 8px; border-radius: 4px; flex-shrink: 0;
+}
+
+.hint-row {
+  margin-top: 12px;
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: var(--text-2);
+}
+.hint-row svg {
+  width: 14px; height: 14px; flex-shrink: 0;
+  stroke: var(--text-2); stroke-width: 1.75; fill: none;
+}
+
+/* 位置与组件页 */
+.box-lbl { display: block; font-size: 13px; font-weight: 500; color: var(--text-2); }
+.dir-row { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+.inp {
+  flex: 1; min-width: 0; height: 36px; padding: 0 11px;
+  border-radius: 6px; background: var(--inp);
+  border: 1px solid var(--line-strong);
+  font-family: var(--mono); font-size: 13px; color: var(--text);
+  user-select: text; transition: border-color 0.14s;
+}
+.inp:focus { border-color: var(--accent); }
+
+.disk-meta { margin-top: 10px; }
+.disk-bar { height: 4px; border-radius: 2px; background: #27272A; overflow: hidden; }
+.disk-fill {
+  height: 100%; width: 4%; border-radius: 2px;
+  background: #71717A; transition: width 0.2s, background 0.2s;
+}
+.disk-txt {
+  margin-top: 6px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums;
+}
+.disk-txt.bad { color: var(--err); }
+
+.opt-row {
+  position: relative; height: 43px; padding: 0 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  cursor: pointer; transition: background 0.12s;
+}
+.opt-row:last-child { border-bottom: none; }
+.opt-row:hover { background: rgba(255, 255, 255, 0.02); }
+.opt-left { display: inline-flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text); }
+.opt-sub { font-size: 12.5px; color: var(--text-3); }
+.opt-row input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.opt-row .box {
+  width: 15px; height: 15px; border-radius: 4px; flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.24);
+  background: transparent; transition: all 0.14s;
+}
+.opt-row:hover .box { border-color: rgba(255, 255, 255, 0.42); }
+.opt-row input:checked + .box {
+  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.2l2.8 2.8 6.2-6'/%3E%3C/svg%3E") center/12px 12px no-repeat;
+  border-color: var(--accent);
+}
+
+/* 部署文件页 */
+.prog-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.st-msg { font-size: 14px; font-weight: 500; color: var(--text); }
+.pct-wrap { font-size: 14px; font-weight: 600; color: var(--text); }
+.track {
+  margin-top: 10px; height: 6px; border-radius: 3px;
+  background: #27272A; overflow: hidden;
+}
+.fill {
+  height: 100%; width: 0%; border-radius: 3px;
+  background: var(--accent); transition: width 0.18s;
+}
+.st-detail {
+  margin-top: 8px; height: 18px;
+  font-family: var(--mono); font-size: 12.5px; color: var(--text-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.log-card {
+  margin-top: 12px; background: #17171A;
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 16px;
+}
+.log-item {
+  height: 31px; display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--text-3);
+}
+.log-ico { width: 14px; height: 14px; display: grid; place-items: center; flex-shrink: 0; }
+.log-ico .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+}
+.log-ico svg {
+  display: none; width: 12px; height: 12px;
+  stroke: var(--text-2); stroke-width: 2; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.log-item.active { color: var(--text); font-weight: 500; }
+.log-item.active .dot { background: var(--accent); border-color: var(--accent); width: 7px; height: 7px; }
+.log-item.done { color: var(--text-2); }
+.log-item.done .dot { display: none; }
+.log-item.done svg { display: block; }
+
+.err-box {
+  display: none; margin-top: 12px; padding: 11px 14px; border-radius: 8px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  font-size: 13px; color: #FCA5A5; line-height: 1.5; word-break: break-word;
+}
+
+/* 安装完成页 */
+.done-head {
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.done-badge {
+  width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+  background: #232328; border: 1px solid rgba(255, 255, 255, 0.10);
+  display: grid; place-items: center;
+}
+.done-badge svg {
+  width: 17px; height: 17px; stroke: var(--text); stroke-width: 2; fill: none;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.done-name { font-size: 14.5px; font-weight: 600; color: var(--text); line-height: 1.25; }
+.done-ver { font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
+.done-row {
+  padding: 10px 16px;
+  display: grid; grid-template-columns: 98px 1fr; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  font-size: 13px;
+}
+.done-row:last-child { border-bottom: none; }
+.done-k { color: var(--text-3); }
+.done-v { color: #D4D4D8; min-width: 0; }
+
+/* ==================== 底部操作栏与按钮 ==================== */
+.foot {
+  height: 60px; padding: 0 28px; flex-shrink: 0;
+  background: var(--foot);
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.foot-note { font-size: 12.5px; color: var(--text-2); }
+.foot-btns { display: flex; align-items: center; gap: 8px; }
+
+.btn {
+  height: 35px; min-width: 90px; padding: 0 16px; border-radius: 6px;
+  font-size: 13.5px; font-weight: 500;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.13s, opacity 0.13s, border-color 0.13s;
+  white-space: nowrap;
+}
+.btn.primary { background: var(--accent); color: #FFFFFF; }
+.btn.primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn.primary:active:not(:disabled) { background: var(--accent-active); }
+.btn.secondary {
+  background: #232328; color: #E4E4E7;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+.btn.secondary:hover:not(:disabled) { background: #2B2B31; }
+.btn.ghost { background: transparent; color: var(--text-2); min-width: 68px; }
+.btn.ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); color: #E4E4E7; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary:disabled {
+  background: #232328; color: #71717A;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  opacity: 1;
+}
+
+/* ==================== 退出确认弹窗 ==================== */
+.modal-mask {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  display: none; place-items: center; z-index: 60;
+}
+.modal-mask.show { display: grid; }
+.modal {
+  width: 340px; background: #1C1C20;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px; padding: 18px 20px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.65);
+}
+.modal-t { font-size: 15.5px; font-weight: 600; color: var(--text); }
+.modal-d { margin-top: 6px; font-size: 13.5px; color: var(--text-2); line-height: 1.5; }
+.modal-btns { margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px; }
+</style>
+</head>
+<body>
+<div class="window">
+  <header class="titlebar" data-windrag>
+    <div class="tb-title" data-windrag>
+      <img src="__ICON_DATA_URI__" alt="" data-windrag>
+      <span data-windrag>Guardline Status 安装程序</span>
+    </div>
+    <div class="tb-btns">
+      <button class="win-btn" id="btnMin" type="button" title="最小化">
+        <svg viewBox="0 0 10 10"><path d="M1 5h8"/></svg>
+      </button>
+      <button class="win-btn close" id="btnClose" type="button" title="关闭">
+        <svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="body-grid">
+    <aside class="side" data-windrag>
+      <div class="prod-box" data-windrag>
+        <img class="brand-icon" src="__ICON_DATA_URI__" alt="Guardline" data-windrag>
+        <div data-windrag>
+          <div class="brand-name" data-windrag>Guardline Status</div>
+          <div class="brand-ver" id="sideVer" data-windrag>Desktop · v3.3.1</div>
+        </div>
+      </div>
+
+      <div class="steps" id="stepList" data-windrag>
+        <div class="step active" data-step="welcome">
+          <span class="step-num"><span class="num-txt">1</span><svg class="chk-ico" viewBox="0 0 16 16"><path d="M3.5 8.2l2.8 2.8 6.2-6"/></svg></span>
+          <span class="step-lbl">安装准备</span>
+        </div>
+        <div class="step" data-step="options">
+          <span class="step-num"><span class="num-txt">2</span><svg class="chk-ico" viewBox="0 0 16 16"><path d="M3.5 8.2l2.8 2.8 6.2-6"/></svg></span>
+          <span class="step-lbl">位置与组件</span>
+        </div>
+        <div class="step" data-step="installing">
+          <span class="step-num"><span class="num-txt">3</span><svg class="chk-ico" viewBox="0 0 16 16"><path d="M3.5 8.2l2.8 2.8 6.2-6"/></svg></span>
+          <span class="step-lbl">部署文件</span>
+        </div>
+        <div class="step" data-step="done">
+          <span class="step-num"><span class="num-txt">4</span><svg class="chk-ico" viewBox="0 0 16 16"><path d="M3.5 8.2l2.8 2.8 6.2-6"/></svg></span>
+          <span class="step-lbl">安装完成</span>
+        </div>
+      </div>
+
+      <div class="side-foot" data-windrag>
+        <div>Windows 10 / 11 (x64)</div>
+        <div>© 2026 Guardline</div>
+      </div>
+    </aside>
+
+    <section class="main">
+      <div class="content">
+        <!-- 1. 安装准备 -->
+        <section class="page active" data-page="welcome">
+          <h1 id="welTitle">安装 Guardline Status</h1>
+          <p class="lead" id="welLead">向导将在当前用户环境下部署桌面控制面板组件，全程无需管理员权限。</p>
+
+          <div class="spec-card">
+            <div class="spec-row">
+              <span class="spec-k">发行版本</span>
+              <span class="spec-v">
+                <span class="mono" id="specVer">v3.3.1 (x64)</span>
+                <span class="tag" id="specModeTag">全新安装</span>
+              </span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">目标路径</span>
+              <span class="spec-v block mono ellipsis" id="specDir"></span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">预计占用</span>
+              <span class="spec-v" id="specSize">正在计算…</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">数据与进程</span>
+              <span class="spec-v">自动接管运行中实例 · 保留本机 DPAPI 加密凭据</span>
+            </div>
+          </div>
+
+          <div class="hint-row">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.2v4M8 4.8h.01"/></svg>
+            <span>点击「下一步」可修改安装位置或配置系统快捷方式。</span>
+          </div>
+        </section>
+
+        <!-- 2. 位置与组件 -->
+        <section class="page" data-page="options">
+          <h1>位置与快捷方式</h1>
+          <p class="lead">指定程序部署目录并选择需要创建的系统入口。</p>
+
+          <div class="box-card" style="padding:13px 16px">
+            <span class="box-lbl">安装目录</span>
+            <div class="dir-row">
+              <input class="inp" id="inpDir" spellcheck="false">
+              <button class="btn secondary" id="btnBrowse" type="button" style="height:36px;min-width:76px">浏览…</button>
+            </div>
+            <div class="disk-meta">
+              <div class="disk-bar"><div class="disk-fill" id="diskFill"></div></div>
+              <div class="disk-txt" id="spaceInfo">
+                <span id="spaceReq">所需空间：-- MB</span>
+                <span id="spaceAvail">磁盘可用：-- GB</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-card" style="margin-top:12px">
+            <label class="opt-row">
+              <span class="opt-left"><input type="checkbox" id="chkDesk" checked><span class="box"></span><span>创建桌面快捷方式</span></span>
+              <span class="opt-sub">在桌面生成启动图标</span>
+            </label>
+            <label class="opt-row">
+              <span class="opt-left"><input type="checkbox" id="chkStart" checked><span class="box"></span><span>添加到开始菜单</span></span>
+              <span class="opt-sub">注册至系统所有应用列表</span>
+            </label>
+            <label class="opt-row">
+              <span class="opt-left"><input type="checkbox" id="chkLaunch" checked><span class="box"></span><span>安装完成后启动面板</span></span>
+              <span class="opt-sub">退出向导时自动运行</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- 3. 部署文件 -->
+        <section class="page" data-page="installing">
+          <h1 id="instTitle">正在部署程序文件</h1>
+          <p class="lead">正在自动关闭旧实例并写入程序文件，请稍候。</p>
+
+          <div class="box-card" style="padding:15px 16px">
+            <div class="prog-head">
+              <span class="st-msg" id="stMsg">正在准备环境…</span>
+              <span class="pct-wrap mono"><span id="pct">0</span>%</span>
+            </div>
+            <div class="track"><div class="fill" id="progFill"></div></div>
+            <div class="st-detail" id="stDetail"></div>
+          </div>
+
+          <div class="log-card" id="instLogCard">
+            <div class="log-item active" data-stage="1">
+              <span class="log-ico"><span class="dot"></span><svg viewBox="0 0 16 16"><path d="M3 8.2l3 3 7-7"/></svg></span>
+              <span>检查并释放运行中的旧版进程</span>
+            </div>
+            <div class="log-item" data-stage="2">
+              <span class="log-ico"><span class="dot"></span><svg viewBox="0 0 16 16"><path d="M3 8.2l3 3 7-7"/></svg></span>
+              <span>解压核心运行库与界面资源</span>
+            </div>
+            <div class="log-item" data-stage="3">
+              <span class="log-ico"><span class="dot"></span><svg viewBox="0 0 16 16"><path d="M3 8.2l3 3 7-7"/></svg></span>
+              <span>配置桌面与开始菜单快捷方式</span>
+            </div>
+            <div class="log-item" data-stage="4">
+              <span class="log-ico"><span class="dot"></span><svg viewBox="0 0 16 16"><path d="M3 8.2l3 3 7-7"/></svg></span>
+              <span>写入系统应用注册表与卸载项</span>
+            </div>
+          </div>
+
+          <div class="err-box" id="errBox"></div>
+        </section>
+
+        <!-- 4. 安装完成 -->
+        <section class="page" data-page="done">
+          <h1 id="doneTitle">安装已完成</h1>
+          <p class="lead" id="doneSub">Guardline Status 已部署就绪。</p>
+
+          <div class="box-card">
+            <div class="done-head">
+              <div class="done-badge">
+                <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+              </div>
+              <div>
+                <div class="done-name">Guardline Status</div>
+                <div class="done-ver mono" id="doneVerTxt">v3.3.1 · 部署成功</div>
+              </div>
+            </div>
+            <div class="done-row">
+              <span class="done-k">安装位置</span>
+              <span class="done-v mono ellipsis" id="donePath"></span>
+            </div>
+            <div class="done-row">
+              <span class="done-k">维护与卸载</span>
+              <span class="done-v" style="color:var(--text-2)">Windows 设置 → 应用 → 已安装的应用</span>
+            </div>
+          </div>
+
+          <div class="box-card" style="margin-top:12px">
+            <label class="opt-row">
+              <span class="opt-left"><input type="checkbox" id="chkDoneLaunch" checked><span class="box"></span><span>关闭安装程序后立即运行 Guardline Status</span></span>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <footer class="foot">
+        <div class="foot-note" id="footNote">系统要求：Windows 10 / 11 64 位</div>
+        <div class="foot-btns">
+          <button class="btn ghost" id="btnCancel" type="button">取消</button>
+          <button class="btn secondary" id="btnBack" type="button" style="display:none">上一步</button>
+          <button class="btn primary" id="btnNext" type="button">下一步</button>
+        </div>
+      </footer>
+    </section>
+  </div>
+</div>
+
+<div class="modal-mask" id="exitMask">
+  <div class="modal">
+    <div class="modal-t">取消安装</div>
+    <div class="modal-d">安装尚未完成，确定要退出安装程序吗？</div>
+    <div class="modal-btns">
+      <button class="btn secondary" id="btnKeepGoing" type="button">继续安装</button>
+      <button class="btn primary" id="btnQuit" type="button">退出</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const api = () => window.pywebview?.api;
+
+const PAGES = ['welcome', 'options', 'installing', 'done'];
+const state = {
+  page: 'welcome',
+  info: null,
+  dir: '',
+  exists: false,
+  required: 0,
+  free: -1,
+  opts: { desk: true, start: true, launch: true },
+  installing: false,
+  error: '',
+};
+
+function fmt(n) {
+  if (n < 0) return '未知';
+  if (n >= 1073741824) return (n / 1073741824).toFixed(1) + ' GB';
+  return Math.round(n / 1048576) + ' MB';
+}
+
+function cmpVer(a, b) {
+  const pa = String(a || '').replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+  const pb = String(b || '').replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const da = pa[i] || 0, db = pb[i] || 0;
+    if (da !== db) return da < db ? -1 : 1;
+  }
+  return 0;
+}
+
+function installKind() {
+  if (!state.exists) return 'fresh';
+  const ver = (state.info?.version || '3.1.0').replace(/^v/i, '');
+  const ivRaw = (state.info?.installed_version || '').replace(/^v/i, '');
+  if (!ivRaw) return 'upgrade';
+  const c = cmpVer(ivRaw, ver);
+  if (c === 0) return 'reinstall';
+  return c < 0 ? 'upgrade' : 'overwrite';
+}
+
+function updateWelcomeNote() {
+  const ver = (state.info?.version || '3.1.0').replace(/^v/i, '');
+  const ivRaw = (state.info?.installed_version || '').replace(/^v/i, '');
+  const kind = installKind();
+
+  $('specVer').textContent = `v${ver} (x64)`;
+  $('specDir').textContent = state.dir || state.info?.default_dir || '';
+  const sizeStr = state.required > 0 ? `约 ${fmt(state.required)}` : '约 85 MB';
+  $('specSize').textContent = `${sizeStr}（独立运行环境，含内置字体与安全模块）`;
+
+  if (kind === 'fresh') {
+    $('welTitle').textContent = '安装 Guardline Status';
+    $('welLead').textContent = '向导将在当前用户环境下部署桌面控制面板组件，全程无需管理员权限。';
+    $('specModeTag').textContent = '全新安装';
+  } else if (kind === 'reinstall') {
+    $('welTitle').textContent = '重新安装 Guardline Status';
+    $('welLead').textContent = `检测到本机已安装当前版本 v${ver}。继续操作将重新部署程序组件，原有路由器登录凭据与本地设置将完整保留。`;
+    $('specModeTag').textContent = `重新安装 · 已装 v${ver}`;
+  } else if (kind === 'overwrite') {
+    $('welTitle').textContent = '覆盖安装 Guardline Status';
+    $('welLead').textContent = `检测到本机已安装 v${ivRaw}。继续操作将覆盖安装 v${ver}，原有登录凭据与本地设置将完整保留。`;
+    $('specModeTag').textContent = `覆盖安装 · 已装 v${ivRaw}`;
+  } else {
+    $('welTitle').textContent = '升级 Guardline Status';
+    $('welLead').textContent = ivRaw
+      ? `检测到本机已安装旧版本 v${ivRaw}。继续操作将平滑升级至 v${ver}，原有登录凭据与本地设置将完整保留。`
+      : `检测到本机已安装旧版本。继续操作将平滑升级至 v${ver}，原有登录凭据与本地设置将完整保留。`;
+    $('specModeTag').textContent = ivRaw ? `平滑升级 · v${ivRaw} → v${ver}` : '平滑升级';
+  }
+}
+
+function updateSpace() {
+  const el = $('spaceInfo');
+  const fill = $('diskFill');
+  const req = fmt(state.required);
+  const avail = state.free >= 0 ? fmt(state.free) : '未知';
+  const low = state.free >= 0 && state.free < state.required;
+  $('spaceReq').textContent = `所需空间：${req}`;
+  $('spaceAvail').textContent = `磁盘可用：${avail}${low ? '（空间不足）' : ''}`;
+  el.classList.toggle('bad', low);
+  if (low) {
+    fill.style.width = '100%';
+    fill.style.background = 'var(--err)';
+  } else {
+    const pct = state.free > 0 && state.required > 0
+      ? Math.max(4, Math.min(92, Math.round((state.required / state.free) * 100)))
+      : 6;
+    fill.style.width = pct + '%';
+    fill.style.background = '#71717A';
+  }
+  if (state.page === 'options') renderFoot();
+}
+
+async function refreshDir(dir) {
+  state.dir = (dir || '').trim() || (state.info?.default_dir || '');
+  const res = await api()?.disk_info?.(state.dir);
+  if (res) {
+    state.free = typeof res.free_bytes === 'number' ? res.free_bytes : -1;
+    state.exists = !!res.exists;
+  }
+  updateSpace();
+  updateWelcomeNote();
+}
+
+function updateInstallStages(v) {
+  const items = document.querySelectorAll('#instLogCard .log-item');
+  const ranges = [
+    [0, 8],
+    [8, 91],
+    [91, 96],
+    [96, 100],
+  ];
+  items.forEach((item, idx) => {
+    const [start, end] = ranges[idx];
+    item.classList.remove('active', 'done');
+    if (v >= end) item.classList.add('done');
+    else if (v >= start) item.classList.add('active');
+  });
+}
+
+function renderDone() {
+  const ver = (state.info?.version || '3.1.0').replace(/^v/i, '');
+  const kind = installKind();
+  $('doneTitle').textContent = kind === 'upgrade' ? '升级已完成' : (kind === 'fresh' ? '安装已完成' : '重新安装已完成');
+  $('doneSub').textContent = `Guardline Status v${ver} 已部署就绪，可直接通过桌面或开始菜单启动。`;
+  $('doneVerTxt').textContent = `v${ver} · 部署成功`;
+  $('donePath').textContent = state.dir;
+  $('chkDoneLaunch').checked = state.opts.launch;
+}
+
+function renderFoot() {
+  const cancel = $('btnCancel'), back = $('btnBack'), next = $('btnNext'), note = $('footNote');
+  const low = state.free >= 0 && state.free < state.required;
+  const kind = installKind();
+
+  if (state.page === 'welcome') {
+    note.textContent = '系统要求：Windows 10 / 11 64 位';
+    cancel.style.display = '';
+    cancel.disabled = false;
+    back.style.display = 'none';
+    next.style.display = '';
+    next.disabled = false;
+    next.textContent = '下一步';
+  } else if (state.page === 'options') {
+    note.textContent = '用户级部署 · 无需管理员授权';
+    cancel.style.display = '';
+    cancel.disabled = false;
+    back.style.display = '';
+    back.disabled = false;
+    next.style.display = '';
+    next.disabled = low || !state.dir;
+    next.textContent = kind === 'upgrade' ? '开始升级' : (kind === 'fresh' ? '开始安装' : '重新安装');
+  } else if (state.page === 'installing') {
+    if (state.error) {
+      note.textContent = '安装已中止';
+      cancel.style.display = '';
+      cancel.disabled = false;
+      back.style.display = '';
+      back.disabled = false;
+      next.style.display = '';
+      next.disabled = false;
+      next.textContent = '重试';
+    } else {
+      note.textContent = '正在部署本地组件…';
+      cancel.style.display = 'none';
+      back.style.display = 'none';
+      next.style.display = '';
+      next.disabled = true;
+      next.textContent = kind === 'upgrade' ? '正在升级…' : '正在安装…';
+    }
+  } else if (state.page === 'done') {
+    note.textContent = '所有组件已完成校验';
+    cancel.style.display = 'none';
+    back.style.display = 'none';
+    next.style.display = '';
+    next.disabled = false;
+    next.textContent = '完成';
+  }
+}
+
+function go(page) {
+  if (!PAGES.includes(page)) return;
+  state.page = page;
+  const curIdx = PAGES.indexOf(page);
+
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.toggle('active', p.dataset.page === page);
+  });
+  document.querySelectorAll('#stepList .step').forEach((s, idx) => {
+    s.classList.remove('pending', 'active', 'done');
+    if (idx < curIdx) s.classList.add('done');
+    else if (idx === curIdx) s.classList.add('active');
+    else s.classList.add('pending');
+  });
+
+  if (page === 'installing') {
+    const kind = installKind();
+    $('instTitle').textContent = kind === 'upgrade' ? '正在升级程序文件' : (kind === 'fresh' ? '正在部署程序文件' : '正在重新部署组件');
+  }
+  if (page === 'done') renderDone();
+  renderFoot();
+}
+
+function startInstall() {
+  state.opts.desk = $('chkDesk').checked;
+  state.opts.start = $('chkStart').checked;
+  state.opts.launch = $('chkLaunch').checked;
+  state.dir = $('inpDir').value.trim() || state.dir;
+  state.error = '';
+  state.installing = true;
+
+  $('pct').textContent = '0';
+  $('progFill').style.width = '0%';
+  $('stMsg').textContent = '正在准备环境…';
+  $('stDetail').textContent = '';
+  $('errBox').style.display = 'none';
+  $('instLogCard').style.display = 'block';
+  updateInstallStages(0);
+  go('installing');
+
+  api()?.start_install?.(state.dir, state.opts.desk, state.opts.start, state.opts.launch);
+}
+
+window.__onInstallProgress = (pct, msg, st, detail) => {
+  const v = Math.max(0, Math.min(100, Number(pct) || 0));
+  $('pct').textContent = String(v);
+  $('progFill').style.width = v + '%';
+  $('stMsg').textContent = msg || '';
+  $('stDetail').textContent = detail || '';
+  updateInstallStages(v);
+
+  if (st === 'done') {
+    state.installing = false;
+    state.error = '';
+    setTimeout(() => go('done'), 250);
+  } else if (st === 'error') {
+    state.installing = false;
+    state.error = msg || '未知错误';
+    $('stMsg').textContent = '安装未能完成';
+    $('instLogCard').style.display = 'none';
+    $('errBox').textContent = '错误详情：' + state.error;
+    $('errBox').style.display = 'block';
+    renderFoot();
+  }
+};
+
+function requestExit() {
+  if (state.installing) return;
+  if (state.page === 'done') api()?.finish_and_exit?.(false);
+  else $('exitMask').classList.add('show');
+}
+
+$('btnNext').onclick = () => {
+  if (state.page === 'welcome') go('options');
+  else if (state.page === 'options') startInstall();
+  else if (state.page === 'installing' && state.error) startInstall();
+  else if (state.page === 'done') api()?.finish_and_exit?.($('chkDoneLaunch').checked);
+};
+
+$('btnBack').onclick = () => {
+  if (state.page === 'options') go('welcome');
+  else if (state.page === 'installing' && state.error) {
+    state.error = '';
+    go('options');
+  }
+};
+
+$('btnCancel').onclick = requestExit;
+$('btnMin').onclick = () => api()?.win_min?.();
+$('btnClose').onclick = requestExit;
+$('btnKeepGoing').onclick = () => $('exitMask').classList.remove('show');
+$('btnQuit').onclick = () => api()?.win_close?.();
+
+$('btnBrowse').onclick = async () => {
+  const chosen = await api()?.pick_folder?.($('inpDir').value);
+  if (chosen) {
+    $('inpDir').value = chosen;
+    await refreshDir(chosen);
+  }
+};
+$('inpDir').addEventListener('change', e => refreshDir(e.target.value));
+$('inpDir').addEventListener('blur', e => refreshDir(e.target.value));
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('exitMask').classList.contains('show')) {
+    $('exitMask').classList.remove('show');
+  } else if (!state.installing && (state.page === 'welcome' || state.page === 'options')) {
+    $('exitMask').classList.add('show');
+  }
+});
+
+document.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  if (e.target.closest('button, input, label, .opt-row, .modal')) return;
+  if (e.target.closest('[data-windrag]')) api()?.win_start_drag?.();
+});
+
+addEventListener('pywebviewready', async () => {
+  const info = await api()?.init_info?.();
+  state.info = info || {};
+  const ver = (state.info.version || '3.1.0').replace(/^v/i, '');
+  $('sideVer').textContent = `Desktop · v${ver}`;
+
+  state.dir = state.info.default_dir || '';
+  state.exists = !!state.info.exists;
+  state.required = Number(state.info.required_bytes) || 0;
+  state.free = typeof state.info.free_bytes === 'number' ? state.info.free_bytes : -1;
+
+  $('inpDir').value = state.dir;
+  updateSpace();
+  updateWelcomeNote();
+
+  const dbg = state.info.debug_page || '';
+  if (dbg && PAGES.includes(dbg)) {
+    go(dbg);
+    if (dbg === 'installing') {
+      window.__onInstallProgress(46, '正在复制文件', 'running', '_internal/webview/lib/WebView2Loader.dll');
+    } else if (dbg === 'done') {
+      renderDone();
+    }
+  } else {
+    go('welcome');
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# 编译与打包产物（通过 GitHub Releases 分发）
+*.exe
+*.zip
+*.spec
+build/
+dist/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# 运行期数据与本机文件
+*.db
+*.sqlite
+*.log
+*.lnk
+Thumbs.db
+desktop.ini
