@@ -1,5 +1,6 @@
 # 编译与打包产物（通过 GitHub Releases 分发）
 *.exe
+*.dmg
 *.zip
 *.spec
 build/
