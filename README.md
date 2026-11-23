@@ -12,7 +12,7 @@
 
 [![Release](https://img.shields.io/badge/%E6%9C%80%E6%96%B0%E7%89%88-v3.3.1-ff5a1f?style=for-the-badge)](https://github.com/2014-y/Guardline-Status/releases/latest)
 [![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078d7?style=for-the-badge&logo=windows&logoColor=white)](#-系统要求)
-[![macOS](https://img.shields.io/badge/macOS-v3.2.2-18181b?style=for-the-badge&logo=apple&logoColor=white)](#3-苹果-mac-电脑安装与首次打开说明)
+[![macOS](https://img.shields.io/badge/macOS-v3.3.1-18181b?style=for-the-badge&logo=apple&logoColor=white)](#3-苹果-mac-电脑安装与首次打开说明)
 [![Router](https://img.shields.io/badge/OpenWrt-Mihomo-00b5e2?style=for-the-badge&logo=openwrt&logoColor=white)](#-系统要求)
 [![Security](https://img.shields.io/badge/%E5%AE%89%E5%85%A8%E5%AE%88%E6%8A%A4-5_Probes_%C2%B7_DPAPI-2ea043?style=for-the-badge)](#-隐私与安全)
 [![License](https://img.shields.io/badge/License-MIT-1f1f1f?style=for-the-badge)](LICENSE)
@@ -151,7 +151,7 @@ flowchart LR
 | 安装包文件 | 适用系统 | 说明 |
 |---|---|---|
 | 🪟 **`Guardline-Status-v3.3.1-Setup.exe`** | **Windows 10 / 11 (x64)** | **Windows 用户推荐**（原 `Guardline Status-安装包.exe`）。单文件图形安装向导，支持桌面/开始菜单快捷方式、无损覆盖升级与标准卸载 |
-| 🍎 **`Guardline-Status-macOS-v3.2.2.dmg`** | **macOS（苹果电脑）** | **Mac 用户推荐**（原 `Guardline Status-macOS-v3.2.2.dmg`）。双击打开后将应用拖入「应用程序」文件夹即可使用 |
+| 🍎 **`Guardline-Status-macOS-v3.3.1.dmg`** | **macOS（苹果电脑）** | **Mac 用户推荐**（原 `Guardline Status-macOS-v3.3.1.dmg`）。双击打开后将应用拖入「应用程序」文件夹即可使用 |
 | 📦 **`Guardline-Status-v3.3.1-Package-and-Source.zip`** | Windows / 开发者 | 完整发行归档包（原 `Guardline Status-v3.3.1-安装包与源码.zip`），内含 Windows 安装器、完整源码与离线文档 |
 
 ### 2️⃣ Windows 电脑安装与升级
@@ -173,7 +173,7 @@ flowchart LR
 
 ### 3️⃣ 苹果 Mac 电脑安装与首次打开说明
 
-1. 双击打开 **`Guardline-Status-macOS-v3.2.2.dmg`**，将窗口里的 **`Guardline Status`** 拖到旁边的 **「应用程序 (Applications)」** 文件夹。
+1. 双击打开 **`Guardline-Status-macOS-v3.3.1.dmg`**，将窗口里的 **`Guardline Status`** 拖到旁边的 **「应用程序 (Applications)」** 文件夹。
 2. **首次打开必看（解决「无法验证开发者 / 已损坏」提示）**：
    由于应用未附带苹果付费商业公证签名，**仅第一次启动时**需按你的 macOS 版本放行一次（之后直接双击即可打开）：
    - **macOS 14 (Sonoma) 及更早版本**：在「访达 → 应用程序」中 **右键（或按住 `Control` 点按）** `Guardline Status` → 点击 **「打开」** → 在弹窗中再点一次 **「打开」**。
