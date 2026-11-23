@@ -4089,12 +4089,11 @@ rm -rf "$AD"
             if "roaming" in item:
                 if item.get("roaming"):
                     cmds.append(f"uci set wireless.{sec}.ieee80211k='1'")
-                    cmds.append(f"uci set wireless.{sec}.bss_transition='1'")
-                    cmds.append(f"uci set wireless.{sec}.wnm_sleep_mode='1'")
                 else:
                     cmds.append(f"uci -q delete wireless.{sec}.ieee80211k")
-                    cmds.append(f"uci -q delete wireless.{sec}.bss_transition")
-                    cmds.append(f"uci -q delete wireless.{sec}.wnm_sleep_mode")
+            # 清理 wpad-basic-mbedtls 不支持的 802.11v WNM 参数，避免 hostapd 解析报错导致双频 AP 无法启动
+            cmds.append(f"uci -q delete wireless.{sec}.bss_transition")
+            cmds.append(f"uci -q delete wireless.{sec}.wnm_sleep_mode")
 
             if radio and SECTION_RE.match(radio):
                 ht = str(item.get("htmode") or "").strip().upper()
@@ -4115,6 +4114,8 @@ rm -rf "$AD"
                 if ch:
                     if ch == "auto":
                         cmds.append(f"uci set wireless.{radio}.channel='auto'")
+                        if is_5g:
+                            cmds.append(f"uci set wireless.{radio}.acs_exclude_dfs='1'")
                     elif ch.isdigit():
                         ch_n = int(ch)
                         if (is_5g and ch_n in (36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165)) or (not is_5g and 1 <= ch_n <= 13):
