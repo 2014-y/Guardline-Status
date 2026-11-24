@@ -10,7 +10,7 @@
 
 <br />
 
-[![Release](https://img.shields.io/badge/%E6%9C%80%E6%96%B0%E7%89%88-v3.3.1-ff5a1f?style=for-the-badge)](https://github.com/2014-y/Guardline-Status/releases/latest)
+[![Release](https://img.shields.io/badge/%E6%9C%80%E6%96%B0%E7%89%88-v3.3.2-ff5a1f?style=for-the-badge)](https://github.com/2014-y/Guardline-Status/releases/latest)
 [![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078d7?style=for-the-badge&logo=windows&logoColor=white)](#-系统要求)
 [![macOS](https://img.shields.io/badge/macOS-v3.3.1-18181b?style=for-the-badge&logo=apple&logoColor=white)](#3-苹果-mac-电脑安装与首次打开说明)
 [![Device](https://img.shields.io/badge/%E4%B8%93%E7%94%A8%E8%AE%BE%E5%A4%87-TR3000-00b5e2?style=for-the-badge)](#-系统要求)
@@ -150,13 +150,13 @@ flowchart LR
 
 | 安装包文件 | 适用系统 | 说明 |
 |---|---|---|
-| 🪟 **`Guardline-Status-v3.3.1-Setup.exe`** | **Windows 10 / 11 (x64)** | **Windows 用户推荐**（原 `Guardline Status-安装包.exe`）。单文件图形安装向导，支持桌面/开始菜单快捷方式、无损覆盖升级与标准卸载 |
+| 🪟 **`Guardline-Status-v3.3.2-Setup.exe`** | **Windows 10 / 11 (x64)** | **Windows 用户推荐**（原 `Guardline Status-安装包.exe`）。单文件图形安装向导，支持桌面/开始菜单快捷方式、无损覆盖升级与标准卸载 |
 | 🍎 **`Guardline-Status-macOS-v3.3.1.dmg`** | **macOS（苹果电脑）** | **Mac 用户推荐**（原 `Guardline Status-macOS-v3.3.1.dmg`）。双击打开后将应用拖入「应用程序」文件夹即可使用 |
-| 📦 **`Guardline-Status-v3.3.1-Package-and-Source.zip`** | Windows / 开发者 | 完整发行归档包（原 `Guardline Status-v3.3.1-安装包与源码.zip`），内含 Windows 安装器、完整源码与离线文档 |
+| 📦 **`Guardline-Status-v3.3.2-Package-and-Source.zip`** | Windows / 开发者 | 完整发行归档包（原 `Guardline Status-v3.3.2-安装包与源码.zip`），内含 Windows 安装器、完整源码与离线文档 |
 
 ### 2️⃣ Windows 电脑安装与升级
 
-1. 直接双击运行 **`Guardline-Status-v3.3.1-Setup.exe`**（默认安装至 `%LOCALAPPDATA%\Programs\RouterPanel`，**不需要管理员权限**，也可自由选择安装目录）。
+1. 直接双击运行 **`Guardline-Status-v3.3.2-Setup.exe`**（默认安装至 `%LOCALAPPDATA%\Programs\RouterPanel`，**不需要管理员权限**，也可自由选择安装目录）。
 2. 若本机正在运行旧版本，安装向导会自动平滑关闭旧进程并替换程序文件——**原本保存的加密账号密码、设备备注名与历史流量数据库完全保留**。
 3. 若 Windows 10 精简版系统缺少微软 Edge WebView2 运行组件，程序会自动检测并引导在线补齐。
 
@@ -164,7 +164,7 @@ flowchart LR
 <summary>🛠️ Windows 命令行静默安装（批量部署与自动升级脚本）</summary>
 
 ```powershell
-.\Guardline-Status-v3.3.1-Setup.exe --silent
+.\Guardline-Status-v3.3.2-Setup.exe --silent
 ```
 
 静默模式无需人工点击，自动将最新版本部署至 `%LOCALAPPDATA%\Programs\RouterPanel` 并刷新桌面及开始菜单快捷方式。

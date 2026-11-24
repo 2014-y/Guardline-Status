@@ -767,6 +767,21 @@ def parse_scan_encryption(enc: dict) -> tuple[str, str]:
     return "psk2", "WPA2"
 
 
+def _iw_escape_ssid(ssid: str) -> str:
+    """生成与 Linux `iw dev <if> link` (print_ssid_escaped) 完全一致的十六进制转义字符串，兼容中文/Emoji/首尾空格/反斜杠。"""
+    raw = (ssid or "").encode("utf-8")
+    out = []
+    n = len(raw)
+    for i, b in enumerate(raw):
+        if 0x21 <= b <= 0x7E and b != 0x5C:
+            out.append(chr(b))
+        elif b == 0x20 and 0 < i < n - 1:
+            out.append(" ")
+        else:
+            out.append(f"\\x{b:02x}")
+    return "".join(out)
+
+
 _CDN_NETS = [ipaddress.ip_network(x) for x in (
     "104.16.0.0/12", "172.64.0.0/13", "173.245.48.0/20", "108.162.192.0/18",
     "190.93.240.0/20", "198.41.128.0/17", "162.158.0.0/15", "188.114.96.0/20",
@@ -1958,9 +1973,9 @@ class Backend:
         wwan_up = any(i.get("interface") == "wwan" and i.get("up") and i.get("ipv4-address")
                       for i in slow.get("ifaces", []))
         for sec, ifn, band, radio, cfg, rd in sta_list(slow):
-            ssid = cfg.get("ssid", "").strip()
+            ssid = (cfg.get("ssid") or "").replace("\r", "").replace("\n", "")
             # 只导入「启用中且已经连上」的桥接，避免把测试用 / 连不上的配置存进常用列表
-            if not ssid or cfg.get("disabled") or not wwan_up:
+            if not ssid.strip() or cfg.get("disabled") or not wwan_up:
                 continue
             bname = band_name(band)
             enc = cfg.get("encryption", "psk2")
@@ -1987,9 +2002,9 @@ class Backend:
         for radio, body in secs.get("SCAN", []):
             results = _json(body, {}).get("results") or []
             for item in results:
-                ssid = (item.get("ssid") or "").strip()
+                ssid = (item.get("ssid") or "").replace("\r", "").replace("\n", "")
                 bssid = (item.get("bssid") or "").upper()
-                if not ssid or bssid in own_bssids:
+                if not ssid.strip() or bssid in own_bssids:
                     continue
                 bname = band_name(item.get("band", 2))
                 sig, qpct = normalize_scan_signal(item.get("signal"), item.get("quality"), item.get("quality_max"))
@@ -2080,17 +2095,18 @@ class Backend:
         by_exact = {}
         by_ssid = {}
         for prof in saved_list:
-            s_ssid = (prof.get("ssid") or "").strip()
+            s_ssid = (prof.get("ssid") or "").replace("\r", "").replace("\n", "")
             s_band = prof.get("band") if prof.get("band") in ("2.4G", "5G") else "2.4G"
             s_enc = prof.get("encryption", "psk2")
-            if not s_ssid:
+            if not s_ssid.strip():
                 continue
             if s_enc != "none":
                 try:
                     pw_plain = unprotect(prof["pw"]) if prof.get("pw") else ""
                 except Exception:
                     pw_plain = ""
-                if not (8 <= len(pw_plain) <= 63):
+                pw_bytes = len(pw_plain.encode("utf-8"))
+                if not ((8 <= pw_bytes <= 63) or re.fullmatch(r"[0-9a-fA-F]{64}", pw_plain)):
                     continue
             else:
                 pw_plain = ""
@@ -2112,10 +2128,10 @@ class Backend:
 
         candidates = []
         for item in scan_items:
-            ssid = (item.get("ssid") or "").strip()
+            ssid = (item.get("ssid") or "").replace("\r", "").replace("\n", "")
             band = item.get("band") if item.get("band") in ("2.4G", "5G") else "2.4G"
             scan_enc = item.get("encryption") or "psk2"
-            if not ssid or scan_enc == "eap":
+            if not ssid.strip() or scan_enc == "eap":
                 continue
             if avail_bands and band not in avail_bands:
                 continue
@@ -2247,11 +2263,13 @@ class Backend:
     def connect_bridge(self, ssid, band, encryption, password, save_profile=True):
         if not self._router:
             return {"ok": False, "error": "尚未连接路由器"}
-        ssid = (ssid or "").strip()
+        ssid = (ssid or "").replace("\r", "").replace("\n", "")
+        if not ssid.strip():
+            return {"ok": False, "error": "Wi‑Fi 名称不能为空"}
         band = band if band in ("2.4G", "5G") else "2.4G"
-        encryption = encryption if encryption in ("psk2", "sae", "psk", "none") else "psk2"
+        encryption = encryption if encryption in ("psk2", "sae", "sae-mixed", "psk", "psk-mixed", "none") else "psk2"
         if not (1 <= len(ssid.encode("utf-8")) <= 32):
-            return {"ok": False, "error": "Wi‑Fi 名称长度需在 1～32 字节之间"}
+            return {"ok": False, "error": "Wi‑Fi 名称长度需在 1～32 字节之间（中文每个字占 3 字节）"}
 
         if password == "__USE_SAVED__":
             prof = next((x for x in self._cfg.get("saved_wifi", []) if x.get("ssid") == ssid and x.get("band") == band), None)
@@ -2261,8 +2279,10 @@ class Backend:
             password = unprotect(prof["pw"]) if prof.get("pw") else ""
 
         if encryption != "none":
-            if not (8 <= len(password or "") <= 63):
-                return {"ok": False, "error": "Wi‑Fi 密码长度需为 8～63 位字符"}
+            pw_str = password or ""
+            pw_bytes = len(pw_str.encode("utf-8"))
+            if not ((8 <= pw_bytes <= 63) or re.fullmatch(r"[0-9a-fA-F]{64}", pw_str)):
+                return {"ok": False, "error": "Wi‑Fi 密码长度需为 8～63 字节（或 64 位十六进制密钥）"}
 
         # 查找目标频段对应的无线射频（以 UCI 为准，兼容不同软路由射频命名）
         with self._lock:
@@ -2294,6 +2314,8 @@ class Backend:
             save_cfg(self._cfg)
 
         q_ssid = shlex.quote(ssid)
+        q_ssid_iw = shlex.quote(_iw_escape_ssid(ssid))
+        q_band = shlex.quote(target_band_code)
         q_enc = shlex.quote(encryption)
         q_key = shlex.quote(password or "")
 
@@ -2322,24 +2344,55 @@ class Backend:
         cmds.append("uci commit wireless")
 
         # 后台守护（全部在路由器上执行，电脑断线也不影响）：
-        #  兼容所有 mac80211 无线接口命名（phy0-sta0 / wlan0 / sta0），检测关联状态、IPv4 分配及上级同网段冲突。
+        #  兼容所有 mac80211 无线接口命名及中文/Emoji/特殊字符 SSID（iw 会将非 ASCII 字节转义为 \xHH）。
         watchdog = f"""
 echo $$ > /tmp/rp_bridge.pid
 trap 'rm -f /tmp/rp_bridge.pid' EXIT INT TERM
 T={q_ssid}
+T_IW={q_ssid_iw}
+TB={q_band}
 echo connecting > /tmp/rp_bridge.state
 wifi reload
-linked_to() {{
+ssid_match() {{
+  [ -z "$3" ] && return 0
+  [ "$1" = "$3" ] && return 0
+  [ -n "$4" ] && [ "$1" = "$4" ] && return 0
+  dec=$(printf '%b' "$1" 2>/dev/null)
+  [ -n "$dec" ] && [ "$dec" = "$3" ] && return 0
+  iws=$(ubus call iwinfo info "{{\\"device\\":\\"$2\\"}}" 2>/dev/null | jsonfilter -e '@.ssid' 2>/dev/null)
+  [ -n "$iws" ] && [ "$iws" = "$3" ] && return 0
+  return 1
+}}
+linked_dev() {{
   for d in $(iw dev 2>/dev/null | awk '$1=="Interface"{{i=$2}} $1=="type"&&$2=="managed"{{print i}}'); do
-    s=$(iw dev "$d" link 2>/dev/null | sed -n 's/^[[:space:]]*SSID: //p')
-    [ -n "$1" ] && [ "$s" = "$1" ] && return 0
-    [ -z "$1" ] && [ -n "$s" ] && return 0
+    lk=$(iw dev "$d" link 2>/dev/null)
+    printf '%s\\n' "$lk" | grep -q '^Connected to ' || continue
+    if [ -n "$3" ]; then
+      fq=$(printf '%s\\n' "$lk" | awk '$1=="freq:"{{printf "%d",$2}}')
+      if [ -n "$fq" ] && [ "$fq" -gt 0 ] 2>/dev/null; then
+        [ "$3" = "5g" ] && [ "$fq" -lt 4900 ] && continue
+        [ "$3" = "2g" ] && [ "$fq" -ge 4900 ] && continue
+      fi
+    fi
+    s=$(printf '%s\\n' "$lk" | sed -n 's/^[[:space:]]*SSID: //p')
+    if ssid_match "$s" "$d" "$1" "$2"; then
+      printf '%s' "$d"
+      return 0
+    fi
   done
   return 1
 }}
-wwan_ip() {{ ubus call network.interface.wwan status 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address'; }}
 ok=0; i=0; wip=""
-while [ $i -lt 22 ]; do sleep 2; i=$((i+1)); wip=$(wwan_ip); if linked_to "$T" && [ -n "$wip" ]; then ok=1; break; fi; done
+while [ $i -lt 22 ]; do
+  sleep 2; i=$((i+1))
+  ldev=$(linked_dev "$T" "$T_IW" "$TB") || continue
+  wst=$(ubus call network.interface.wwan status 2>/dev/null)
+  wip=$(printf '%s\\n' "$wst" | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)
+  wdev=$(printf '%s\\n' "$wst" | jsonfilter -e '@.l3_device' 2>/dev/null)
+  if [ -n "$wip" ] && {{ [ -z "$wdev" ] || [ "$wdev" = "$ldev" ]; }}; then
+    ok=1; break
+  fi
+done
 if [ $ok = 1 ]; then
   lip=$(uci -q get network.lan.ipaddr | cut -d/ -f1)
   if [ -n "$lip" ] && [ "${{wip%.*}}" = "${{lip%.*}}" ]; then
@@ -2354,7 +2407,7 @@ else
     wifi reload
   fi
   up2=0; i=0
-  while [ $i -lt 12 ]; do sleep 2; i=$((i+1)); if linked_to ""; then up2=1; break; fi; done
+  while [ $i -lt 12 ]; do sleep 2; i=$((i+1)); if linked_dev "" "" "" >/dev/null; then up2=1; break; fi; done
   if [ $up2 = 0 ]; then
     for s in $(uci -q show wireless | sed -n "s/^wireless\\.\\([^.]*\\)\\.mode='sta'$/\\1/p"); do uci set wireless.$s.disabled='1'; done
     uci commit wireless; wifi reload
@@ -2831,7 +2884,11 @@ fi
     def _links(self):
         s = self._slow
         usb_net = s.get("usb_net") or set()
-        stas = {x[4].get("network", [""])[0]: x for x in sta_list(s)}
+        stas = {}
+        for x in sta_list(s):
+            nk = (x[4].get("network") or [""])[0]
+            if nk and (nk not in stas or not x[4].get("disabled")):
+                stas[nk] = x
         out, best = [], None
         for itf in s.get("ifaces", []):
             name = itf.get("interface")
@@ -4091,7 +4148,7 @@ rm -rf "$AD"
                     cmds.append(f"uci set wireless.{sec}.ieee80211k='1'")
                 else:
                     cmds.append(f"uci -q delete wireless.{sec}.ieee80211k")
-            # 清理 wpad-basic-mbedtls 不支持的 802.11v WNM 参数，避免 hostapd 解析报错导致双频 AP 无法启动
+            # 清理 wpad-basic-mbedtls 不支持的 802.11v WNM 参数，避免 hostapd 拒绝启动 AP
             cmds.append(f"uci -q delete wireless.{sec}.bss_transition")
             cmds.append(f"uci -q delete wireless.{sec}.wnm_sleep_mode")
 

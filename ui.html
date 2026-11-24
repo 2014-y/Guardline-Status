@@ -3321,7 +3321,7 @@ body.privacy-on .priv-mask-inp:not(:focus) { -webkit-text-security: disc; }
           <div style="border-top:1px solid var(--border);padding-top:12px">
             <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">系统版本与运行环境规格</div>
             <div class="kv-list">
-              <div class="kv-row"><span class="kv-k">应用名称与版本</span><span class="kv-v mono">Guardline Status v3.3.1 (x64)</span></div>
+              <div class="kv-row"><span class="kv-k">应用名称与版本</span><span class="kv-v mono">Guardline Status v3.3.2 (x64)</span></div>
               <div class="kv-row"><span class="kv-k">当前软路由会话</span><span class="kv-v mono" id="abLiveConn">读取中…</span></div>
               <div class="kv-row"><span class="kv-k">已接入网关设备</span><span class="kv-v" id="abLiveRouter">待同步硬件信息</span></div>
               <div class="kv-row"><span class="kv-k">客户端技术架构</span><span class="kv-v">Edge WebView2 + Python Native</span></div>
@@ -4532,9 +4532,9 @@ function renderBridge() {
         </div>
       </div>
       <div class="wifi-acts">
-        <button class="btn primary sm" data-quickbr="${esc(w.ssid)}|${esc(w.band)}|${esc(w.encryption)}">${isCur ? '重连' : '连接'}</button>
-        <button class="btn sm" data-editbr="${esc(w.ssid)}|${esc(w.band)}|${esc(w.encryption)}">改密</button>
-        <button class="btn danger sm" data-delbr="${esc(w.ssid)}|${esc(w.band)}">删除</button>
+        <button class="btn primary sm" data-br-act="quick" data-ssid="${esc(w.ssid)}" data-band="${esc(w.band)}" data-enc="${esc(w.encryption)}">${isCur ? '重连' : '连接'}</button>
+        <button class="btn sm" data-br-act="edit" data-ssid="${esc(w.ssid)}" data-band="${esc(w.band)}" data-enc="${esc(w.encryption)}">改密</button>
+        <button class="btn danger sm" data-br-act="del" data-ssid="${esc(w.ssid)}" data-band="${esc(w.band)}">删除</button>
       </div>
     </div>`;
   }).join('') || `<div class="empty-box">连接成功的桥接热点会自动加密保存在此处</div>`);
@@ -4560,25 +4560,31 @@ function renderScanItems() {
     }
     return;
   }
-  setHtml('scanList', rows.map(n => `<div class="wifi-item">
+  const B = S?.bridge || null;
+  const savedSet = B ? new Set((B.saved || []).map(w => `${w.ssid}\0${w.band}`)) : null;
+  setHtml('scanList', rows.map(n => {
+    const isCur = B ? !!(B.enabled && B.ssid === n.ssid && B.band === n.band) : !!n.current;
+    const isSaved = savedSet ? savedSet.has(`${n.ssid}\0${n.band}`) : !!n.saved;
+    return `<div class="wifi-item">
     <div class="wifi-left">
-      <div class="wifi-ico ${n.current ? 'active' : ''}">${sigBarsHtml(n.quality)}</div>
+      <div class="wifi-ico ${isCur ? 'active' : ''}">${sigBarsHtml(n.quality)}</div>
       <div class="wifi-meta">
         <div class="wifi-title-row">
           <span class="wifi-ssid" title="${esc(n.ssid)}">${esc(n.ssid)}</span>
           <span class="pill xs">${esc(n.band)}</span>
-          ${n.current ? '<span class="pill green xs">当前</span>' : (n.saved ? '<span class="pill primary-soft xs">已存</span>' : '')}
+          ${isCur ? '<span class="pill green xs">当前</span>' : (isSaved ? '<span class="pill primary-soft xs">已存</span>' : '')}
         </div>
         <div class="wifi-sub-row num">${n.signal} dBm (${n.quality}%) · 信道 ${n.channel || '?'} · ${esc(n.enc_label)}</div>
       </div>
     </div>
     <div class="wifi-acts">
-      ${n.saved && n.encryption !== 'eap' && !n.current ? `<button class="btn sm" data-quickbr="${esc(n.ssid)}|${esc(n.band)}|${esc(n.encryption)}">免密连</button>` : ''}
-      <button class="btn primary sm" ${n.encryption === 'eap' ? 'disabled' : `data-openbr="${esc(n.ssid)}|${esc(n.band)}|${esc(n.encryption)}"`}>
-        ${n.current ? '改密' : '桥接热点'}
+      ${isSaved && n.encryption !== 'eap' && !isCur ? `<button class="btn sm" data-br-act="quick" data-ssid="${esc(n.ssid)}" data-band="${esc(n.band)}" data-enc="${esc(n.encryption)}">免密连</button>` : ''}
+      <button class="btn primary sm" ${n.encryption === 'eap' ? 'disabled' : `data-br-act="open" data-ssid="${esc(n.ssid)}" data-band="${esc(n.band)}" data-enc="${esc(n.encryption)}"`}>
+        ${isCur ? '改密' : '桥接热点'}
       </button>
     </div>
-  </div>`).join('') || `<div class="empty-box">该频段下暂无热点</div>`);
+  </div>`;
+  }).join('') || `<div class="empty-box">该频段下暂无热点</div>`);
 }
 
 $('scanBandFilter').onchange = renderScanItems;
@@ -4597,7 +4603,9 @@ $('btnScanWifi').onclick = async () => {
   }
 };
 
+let brPresetSsid = '';
 function openBridgeModal(title, ssid = '', band = '2.4G', enc = 'psk2') {
+  brPresetSsid = ssid || '';
   $('brModalTitle').textContent = title;
   $('brSsid').value = ssid;
   $('brBand').value = band === '5G' ? '5G' : '2.4G';
@@ -4634,29 +4642,31 @@ $('brAutoConnect').onchange = async e => {
 };
 
 document.addEventListener('click', async e => {
-  const ob = e.target.closest('[data-openbr]');
-  if (ob) { const [s, b, enc] = ob.dataset.openbr.split('|'); openBridgeModal(`桥接至 ${s}`, s, b, enc); return; }
-  const eb = e.target.closest('[data-editbr]');
-  if (eb) { const [s, b, enc] = eb.dataset.editbr.split('|'); openBridgeModal(`修改密码：${s}`, s, b, enc); return; }
-  const qb = e.target.closest('[data-quickbr]');
-  if (qb) {
-    const [s, b, enc] = qb.dataset.quickbr.split('|');
+  const actBtn = e.target.closest('[data-br-act]');
+  if (!actBtn) return;
+  const act = actBtn.dataset.brAct;
+  const s = actBtn.dataset.ssid || '';
+  const b = actBtn.dataset.band || '2.4G';
+  const enc = actBtn.dataset.enc || 'psk2';
+  if (act === 'open') { openBridgeModal(`桥接至 ${s}`, s, b, enc); return; }
+  if (act === 'edit') { openBridgeModal(`修改密码：${s}`, s, b, enc); return; }
+  if (act === 'quick') {
     askConfirm('切换无线桥接', `确定将路由器无线桥接切换至「${s} (${b})」吗？`, async () => {
       const r = await api().connect_bridge(s, b, enc, '__USE_SAVED__', true);
-      if (!r?.ok) toast(r?.error || '切换失败'); else toast(`正在切换桥接至 ${s}...`);
+      if (!r?.ok) toast(r?.error || '切换失败'); else { toast(`正在切换桥接至 ${s}...`); await fetchAppState(true); render(); }
     });
     return;
   }
-  const db = e.target.closest('[data-delbr]');
-  if (db) {
-    const [s, b] = db.dataset.delbr.split('|');
+  if (act === 'del') {
     await api().delete_saved_wifi(s, b);
     await fetchAppState(true); render(); toast('已移除保存的热点');
   }
 });
 
 $('btnSubmitBridge').onclick = async () => {
-  const ssid = $('brSsid').value.trim(), band = $('brBand').value, enc = $('brEnc').value, pw = $('brPass').value;
+  const rawSsid = $('brSsid').value;
+  const ssid = (brPresetSsid && rawSsid === brPresetSsid) ? rawSsid : rawSsid.trim();
+  const band = $('brBand').value, enc = $('brEnc').value, pw = $('brPass').value;
   const errEl = $('brErr'), btn = $('btnSubmitBridge');
   btn.disabled = true; btn.textContent = '正在下发...';
   try {

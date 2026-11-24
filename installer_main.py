@@ -22,7 +22,7 @@ UI_HTML = RES / "installer_ui.html"
 
 APP_NAME = "Guardline Status"
 LEGACY_APP_NAMES = ("TR3000 面板", "路由器面板", "Guardline Panel")
-APP_VERSION = "3.3.1"
+APP_VERSION = "3.3.2"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\RouterPanel"
 DEFAULT_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "Programs" / "RouterPanel"
 
